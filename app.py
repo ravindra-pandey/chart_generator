@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import chart_types as ct
 
+st.set_page_config(layout="wide")
+
 with open("styles/style.css", "r") as css_file:
     custom_css = css_file.read()
 
