@@ -1,13 +1,9 @@
 import os
 from io import BytesIO
-
 import pandas as pd
 import matplotlib.pyplot as plt
-
 import streamlit as st
-
 import chart_types as ct
-
 
 with open("styles/style.css", "r") as css_file:
     custom_css = css_file.read()
@@ -15,19 +11,19 @@ with open("styles/style.css", "r") as css_file:
 # Render the custom CSS
 st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
 
-
 if 'counter' not in st.session_state:
     st.session_state.counter = 0
 st.session_state.counter += 1
-st.write(f"Counter: {st.session_state}")
+st.write(f"Counter: {st.session_state.counter}")
+
+if st.session_state.counter==1:
+    print("removed")
+    os.remove("temp_file.csv")
 
 try:
     data = pd.read_csv("temp_file.csv")
 except:
     data = pd.DataFrame({"X": [None, None, None], "Y": [None, None, None]})
-    
-if st.session_state.counter == 1:
-    os.system("del temp_file.csv")
 
 def save_chart_as_image():
     buffer = BytesIO()
@@ -35,18 +31,20 @@ def save_chart_as_image():
     buffer.seek(0)
     return buffer
 
-
-new_columns = st.text_input("you can add column here")
-if st.button("add columns"):
+new_columns = st.text_input("You can add columns here")
+if st.button("Add columns"):
     for col in new_columns.split(","):
-        data[col] = None
-chart_type="line"
-chart_type=st.selectbox("selct the chart type you want to create",["line","scatter"])
+        if col not in data.columns:
+            data[col] = None  # Only add the column if it doesn't already exist
+
+chart_type = "line"
+chart_type = st.selectbox("Select the chart type you want to create", ["line", "scatter"])
 col1, col2 = st.columns(2)
 with col1:
     data = st.data_editor(data, num_rows="dynamic")
-    if st.button("submit"):
-        data.to_csv("temp_file.csv", index=False)
+    st.dataframe(data)
+    data.to_csv("temp_file.csv", index=False)
+
 with col2:
     if chart_type == "line":
         ct.plot_line(data)
@@ -60,3 +58,15 @@ with col2:
         file_name="sample_chart.png",
         key="download_chart"
     )
+
+# Check if running in Streamlit sharing environment
+if 'SHARING_HOST' in os.environ:
+    # Schedule the deletion of the temporary file when the app exits
+    import atexit
+    
+    def delete_temp_file():
+        print("done")
+        if os.path.exists("temp_file.csv"):
+            os.remove("temp_file.csv")
+    
+    atexit.register(delete_temp_file)
