@@ -18,14 +18,17 @@ if 'counter' not in st.session_state:
 st.session_state.counter += 1
 st.write(f"Counter: {st.session_state.counter}")
 
-if st.session_state.counter==1:
-    print("removed")
-    os.remove("temp_file.csv")
+@st.cache_data
+def load_or_create_data():
+    if st.session_state.counter == 1:
+        return pd.DataFrame({"X": [None, None, None], "Y": [None, None, None]})
+    else:
+        try:
+            return pd.read_csv("temp_file.csv")
+        except FileNotFoundError:
+            return pd.DataFrame({"X": [None, None, None], "Y": [None, None, None]})
 
-try:
-    data = pd.read_csv("temp_file.csv")
-except:
-    data = pd.DataFrame({"X": [None, None, None], "Y": [None, None, None]})
+data = load_or_create_data()
 
 def save_chart_as_image():
     buffer = BytesIO()
@@ -43,15 +46,14 @@ chart_type = "line"
 chart_type = st.selectbox("Select the chart type you want to create", ["line", "scatter"])
 col1, col2 = st.columns(2)
 with col1:
-    data = st.data_editor(data, num_rows="dynamic")
-    st.dataframe(data)
-    data.to_csv("temp_file.csv", index=False)
+    edited_data = st.data_editor(data, key="editable_data")
+    edited_data.to_csv("temp_file.csv", index=False)
 
 with col2:
     if chart_type == "line":
-        ct.plot_line(data)
+        ct.plot_line(edited_data)
     elif chart_type == "scatter":
-        ct.plot_scatter(data)
+        ct.plot_scatter(edited_data)
 
     chart_buffer = save_chart_as_image()
     st.download_button(
